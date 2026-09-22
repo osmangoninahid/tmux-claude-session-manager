@@ -36,6 +36,12 @@ Simple by design: it's just a few shell scripts.
 - **A live preview** of each agent's screen right in the picker.
 - **Smart jump** — selecting an agent switches your client to the window it
   was launched from, then resumes it in a popup over it.
+- **First-prompt naming** — a Claude-plugin hook titles each Claude session
+  from its opening prompt (ticket ID > git branch > directory, plus a slice
+  of the prompt) and renames the hatch tmux session to match
+  (`claude-oicm-482-fix-stuck-mig`). The full label shows as the picker's
+  title column. Loose Claudes get the title only — your own sessions are
+  never renamed. Requires the Claude plugin (`/plugin install`).
 - **A launcher** (`prefix` + `y`) that opens a fresh Claude session for the
   current directory — every press is a new session (named `claude-<dir>-1`,
   `-2`, …); reach the old ones through the picker. Set

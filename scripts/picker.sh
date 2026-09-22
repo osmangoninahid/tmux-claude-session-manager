@@ -65,7 +65,7 @@ fzf --track --version >/dev/null 2>&1 && sync_opts+=(--track)
 # beat so the supervisor has dropped the agent from `claude agents --json`.
 # ctrl-y copies the agent's location (session:window.pane, e.g. claude-88074b0e:0.0)
 # and closes the picker.
-sel=$("${list_cmd[@]}" | fzf --ansi --delimiter='\t' --with-nth=5,6,7,8 \
+sel=$("${list_cmd[@]}" | fzf --ansi --delimiter='\t' --with-nth=5,6,9,7,8 \
   --reverse --cycle --header='Claude agents · enter: jump · ctrl-x: kill · ctrl-y: copy' \
   --preview='tmux capture-pane -ept {2}' --preview-window='up,70%,follow' \
   --bind="ctrl-x:execute-silent(kill {3})+reload(sleep 0.3; $self --list)" \

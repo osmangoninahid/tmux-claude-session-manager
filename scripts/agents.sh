@@ -10,8 +10,10 @@
 # is what lets several Claudes in one project (same cwd, same session, different
 # windows) each get a row of their own.
 #
-#   Row: rank \t pane_id \t pid \t kind \t icon \t age \t loc \t path
+#   Row: rank \t pane_id \t pid \t kind \t icon \t age \t loc \t path \t title
 #   rank/pane_id/pid/kind are hidden from the display via fzf's --with-nth.
+#   title is the label the session-name hook stored in @claude_title ('-'
+#   until the session's first prompt has been given).
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=helpers.sh
@@ -27,17 +29,20 @@ mtimes="$(printf '%s\n' "$rows" | cut -f3 | while IFS= read -r sid; do
   printf 'M\t%s\t%s\n' "$sid" "$(claude_transcript_mtime "$sid")"
 done)"
 
-# Three tagged streams into one awk: pid->tty, tty->pane, session->last-activity.
-# Total cost is 3 subprocesses regardless of how many sessions or panes exist.
+# Four tagged streams into one awk: pid->tty, tty->pane, session->title,
+# session->last-activity. Total cost stays a handful of subprocesses
+# regardless of how many sessions or panes exist.
 {
   ps -Ao pid=,tty= 2>/dev/null | awk '{ print "P\t" $1 "\t" $2 }'
   tmux list-panes -a -F $'T\t#{pane_tty}\t#{pane_id}\t#{session_name}\t#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null
+  tmux list-sessions -F $'S\t#{session_name}\t#{@claude_title}' 2>/dev/null
   printf '%s\n' "$mtimes"
   printf '%s\n' "$rows" | sed $'s/^/A\t/'
 } | awk -F'\t' -v now="$(date +%s)" -v home="$HOME" \
   -v prefix="$(get_tmux_option @claude_session_prefix 'claude-')" '
   $1 == "P" { tty_of[$2] = $3; next }
   $1 == "T" { sub(/^\/dev\//, "", $2); pane[$2] = $3; sess[$2] = $4; loc[$2] = $5; next }
+  $1 == "S" { title[$2] = $3; next }
   $1 == "M" { seen_at[$2] = $3; next }
   $1 == "A" {
     tty = tty_of[$2]
@@ -54,8 +59,12 @@ done)"
     path = $5
     if (index(path, home) == 1) path = "~" substr(path, length(home) + 1)
 
-    printf "%s\t%s\t%s\t%s\t%s\t%5s\t%s\t%s\n",
-      rank, pane[tty], $2, kind, icon, age, loc[tty], path
+    t = title[sess[tty]]
+    if (t == "") t = "-"
+    if (length(t) > 40) t = substr(t, 1, 39) "…"
+
+    printf "%s\t%s\t%s\t%s\t%s\t%5s\t%s\t%s\t%s\n",
+      rank, pane[tty], $2, kind, icon, age, loc[tty], path, t
   }
 ' | sort -t$'\t' -k1,1n -k6,6n
 # rank asc (what needs you floats up), then age asc so whatever just went idle
