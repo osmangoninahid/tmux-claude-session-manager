@@ -31,6 +31,29 @@ session_hash() {
   printf '%s' "${out:0:8}"
 }
 
+# new_session_name <prefix> <path>
+# First free session name of the form <prefix><dir-slug>-<n>, counting up from
+# 1. Collision checks use tmux's =name exact-match form; plain -t would
+# prefix-match and mistake claude-app-1 for a claude-app-10 that exists.
+# Names may not contain '.' or ':' (tmux target syntax), so the slug keeps
+# only [a-z0-9-]. Echoes the name, or returns 1 when 999 names are taken.
+new_session_name() {
+  local prefix="$1" base n candidate
+  base="$(basename "$2" | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-24)"
+  [ -n "$base" ] || base='session'
+  n=1
+  while [ "$n" -le 999 ]; do
+    candidate="${prefix}${base}-${n}"
+    if ! tmux has-session -t "=$candidate" 2>/dev/null; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+    n=$((n + 1))
+  done
+  return 1
+}
+
 # file_mtime <path>
 # Epoch seconds of a file's last modification. GNU stat (Linux) is tried first,
 # then BSD (macOS); each rejects the other's flag, so the fallback is unambiguous.

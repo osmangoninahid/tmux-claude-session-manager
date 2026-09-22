@@ -36,8 +36,11 @@ Simple by design: it's just a few shell scripts.
 - **A live preview** of each agent's screen right in the picker.
 - **Smart jump** — selecting an agent switches your client to the window it
   was launched from, then resumes it in a popup over it.
-- **A launcher** (`prefix` + `y`) that opens/attaches a Claude session for the
-  current directory.
+- **A launcher** (`prefix` + `y`) that opens a fresh Claude session for the
+  current directory — every press is a new session (named `claude-<dir>-1`,
+  `-2`, …); reach the old ones through the picker. Set
+  `@claude_reattach 'on'` for upstream's one-session-per-directory
+  re-attach behaviour instead.
 - **Quick kill** (`ctrl-x`) of a finished agent from the picker.
 - **Copy location** (`ctrl-y`) — puts an agent's `session:window.pane` target
   on the clipboard, ready for `tmux send-keys -t` and friends.
@@ -99,7 +102,7 @@ it registers.
 
 | Key            | Action                                                                          |
 | -------------- | ------------------------------------------------------------------------------- |
-| `prefix` + `y` | Launch (or re-attach to) a Claude session for the current directory, in a popup |
+| `prefix` + `y` | Launch a fresh Claude session for the current directory, in a popup (re-attach mode: `@claude_reattach 'on'`) |
 | `prefix` + `d` | Close the popup and go back to your window; the Claude session keeps running    |
 | `prefix` + `u` | Open the agent picker                                                           |
 
@@ -128,6 +131,7 @@ set -g @claude_list_key       'u'        # prefix key: open the picker
 set -g @claude_command        'claude'   # command run in new sessions
 set -g @claude_args           ''         # extra args appended to the command
 set -g @claude_session_prefix 'claude-'  # tmux session name prefix
+set -g @claude_reattach       'off'      # 'on' = upstream behaviour: one session per directory, re-attached
 set -g @claude_popup_width     '90%'     # popup width
 set -g @claude_popup_height    '90%'     # popup height
 set -g @claude_fzf_options    ''         # extra options passed to the fzf picker
