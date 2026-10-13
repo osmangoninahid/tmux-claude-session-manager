@@ -10,11 +10,21 @@ input=$(cat 2>/dev/null) || exit 0
 
 sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 [ -n "$sid" ] || exit 0
-marker="${TMPDIR:-/tmp}/claude-hatch-title-$sid"
+# Markers live under the cache dir, not $TMPDIR: macOS purges /tmp entries
+# after a few idle days, and a lost marker would re-title the session from
+# whatever prompt comes next.
+marker_dir="${CLAUDE_HATCH_STATE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-hatch}"
+mkdir -p "$marker_dir" 2>/dev/null || marker_dir="${TMPDIR:-/tmp}"
+marker="$marker_dir/title-$sid"
 [ -e "$marker" ] && exit 0
 
 prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null |
   tr '\n\t' '  ' | tr -s ' ' | sed -E 's/^ +//; s/ +$//')
+# Only a human prompt may name the session: background task notifications,
+# system reminders and slash commands also arrive through UserPromptSubmit.
+case "$prompt" in
+  ''|/*|'['*|'<'*) exit 0 ;;
+esac
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 # Physical path, so comparisons against git's output survive macOS's
 # /var -> /private/var (and /tmp) symlinks.
