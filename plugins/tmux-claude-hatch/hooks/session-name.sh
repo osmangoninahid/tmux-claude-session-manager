@@ -17,6 +17,12 @@ marker_dir="${CLAUDE_HATCH_STATE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-hat
 mkdir -p "$marker_dir" 2>/dev/null || marker_dir="${TMPDIR:-/tmp}"
 marker="$marker_dir/title-$sid"
 [ -e "$marker" ] && exit 0
+# Sessions titled before the markers moved out of $TMPDIR keep their name.
+legacy="${TMPDIR:-/tmp}/claude-hatch-title-$sid"
+if [ -e "$legacy" ]; then
+  touch "$marker" 2>/dev/null
+  exit 0
+fi
 
 prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null |
   tr '\n\t' '  ' | tr -s ' ' | sed -E 's/^ +//; s/ +$//')
